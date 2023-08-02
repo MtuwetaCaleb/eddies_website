@@ -1,13 +1,13 @@
+// For non-browser environment (Node.js), define the window object
+var window = {};
 
 (function(window){
 
     var Game = {
     
       init: function(){
-        this.c = document.getElementById("game");
-        this.c.width = this.c.width;
-        this.c.height = this.c.height;
-        this.ctx = this.c.getContext("2d");
+        this.c = { width: 800, height: 600 }; // In a non-browser environment, provide your own canvas dimensions
+        this.ctx = {}; // In a non-browser environment, provide your own canvas context
         this.color = "rgba(20,20,20,.7)";
         this.bullets = [];
         this.enemyBullets = [];
@@ -30,7 +30,10 @@
         this.shooting = false;
         this.oneShot = false;
         this.isGameOver = false;
-         this.requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame;
+         this.requestAnimationFrame = function(callback) {
+            // In a non-browser environment, use setInterval instead of requestAnimationFrame
+            return setInterval(callback, 1000 / 60); // 60 FPS (frames per second) equivalent
+        };
         for(var i = 0; i<this.maxEnemies; i++){
           new Enemy();
           this.enemiesAlive++;
@@ -41,17 +44,17 @@
       },
     
       binding: function(){
-        window.addEventListener("keydown", this.buttonDown);
-        window.addEventListener("keyup", this.buttonUp);
-        window.addEventListener("keypress", this.keyPressed);
-        this.c.addEventListener("click", this.clicked);
+       window.addEventListener("keydown", this.buttonDown);
+       window.addEventListener("keyup", this.buttonUp);
+       window.addEventListener("keypress", this.keyPressed);
+       this.c.addEventListener("click", this.clicked);
       },
     
       clicked: function(){
-        if(!Game.paused) {
+        if (!Game.paused) {
           Game.pause();
         } else {
-          if(Game.isGameOver){
+          if (Game.isGameOver) {
             Game.init();
           } else {
             Game.unPause();
@@ -60,7 +63,7 @@
           }
         }
       },
-    
+
       keyPressed: function(e){
         if(e.keyCode === 32){
           if(!Game.player.invincible  && !Game.oneShot){
@@ -422,5 +425,3 @@
     
     
     }(window));
-
-  
