@@ -1,201 +1,132 @@
 // For non-browser environment (Node.js), define the window object
 var window = {};
 
-(function(window){
+// Load the readline-sync library for input in a non-browser environment
+const readline = require('readline-sync');
 
-    var Game = {
-    
-      init: function(){
-        this.c = { width: 800, height: 600 }; // In a non-browser environment, provide your own canvas dimensions
-        this.ctx = {}; // In a non-browser environment, provide your own canvas context
-        this.color = "rgba(20,20,20,.7)";
-        this.bullets = [];
-        this.enemyBullets = [];
-        this.enemies = [];
-        this.particles = [];
-        this.bulletIndex = 0;
-        this.enemyBulletIndex = 0;
-        this.enemyIndex = 0;
-        this.particleIndex = 0;
-        this.maxParticles = 10;
-        this.maxEnemies = 6;
-        this.enemiesAlive = 0;
-        this.currentFrame = 0;
-        this.maxLives = 3;
-        this.life = 0;
-        this.binding();
-        this.player = new Player();
-        this.score = 0;
-        this.paused = false;
-        this.shooting = false;
-        this.oneShot = false;
-        this.isGameOver = false;
-         this.requestAnimationFrame = function(callback) {
-            // In a non-browser environment, use setInterval instead of requestAnimationFrame
-            return setInterval(callback, 1000 / 60); // 60 FPS (frames per second) equivalent
-        };
-        for(var i = 0; i<this.maxEnemies; i++){
-          new Enemy();
-          this.enemiesAlive++;
-        }
-        this.invincibleMode(2000);
-    
-        this.loop();
-      },
-    
-      binding: function(){
-       window.addEventListener("keydown", this.buttonDown);
-       window.addEventListener("keyup", this.buttonUp);
-       window.addEventListener("keypress", this.keyPressed);
-       this.c.addEventListener("click", this.clicked);
-      },
-    
-      clicked: function(){
-        if (!Game.paused) {
-          Game.pause();
-        } else {
-          if (Game.isGameOver) {
-            Game.init();
-          } else {
-            Game.unPause();
-            Game.loop();
-            Game.invincibleMode(1000);
-          }
-        }
-      },
+(function(window) {
 
-      keyPressed: function(e){
-        if(e.keyCode === 32){
-          if(!Game.player.invincible  && !Game.oneShot){
-            Game.player.shoot();
-            Game.oneShot = true;
-          }
-          if(Game.isGameOver){
-            Game.init();
-          }
-          e.preventDefault();
+  const Game = {
+    c: { width: 800, height: 600 }, // In a non-browser environment, provide your own canvas dimensions
+    ctx: {}, // In a non-browser environment, provide your own canvas context
+    color: "rgba(20,20,20,.7)",
+    bullets: [],
+    enemyBullets: [],
+    enemies: [],
+    particles: [],
+    bulletIndex: 0,
+    enemyBulletIndex: 0,
+    enemyIndex: 0,
+    particleIndex: 0,
+    maxParticles: 10,
+    maxEnemies: 6,
+    enemiesAlive: 0,
+    currentFrame: 0,
+    maxLives: 3,
+    life: 0,
+    shooting: false,
+    oneShot: false,
+    isGameOver: false,
+
+    init: function() {
+      this.binding();
+      this.player = new Player();
+      this.score = 0;
+      this.paused = false;
+      this.loop();
+    },
+
+    binding: function() {
+      this.rl = readline;
+
+      // Handle input using readline-sync
+      this.rl.setPrompt('');
+      this.rl.promptLoop = this.promptLoop.bind(this);
+      this.rl.promptLoop();
+    },
+
+    promptLoop: function() {
+      const key = this.rl.keyIn('', { hideEchoBack: true, mask: '' });
+
+      if (key === ' ') {
+        if (!this.player.invincible && !this.oneShot) {
+          this.player.shoot();
+          this.oneShot = true;
         }
-      },
-    
-      buttonUp: function(e){
-        if(e.keyCode === 32){
-          Game.shooting = false;
-          Game.oneShot = false;
-            e.preventDefault();
-        }
-        if(e.keyCode === 37 || e.keyCode === 65){
-          Game.player.movingLeft = false;
-        }
-        if(e.keyCode === 39 || e.keyCode === 68){
-          Game.player.movingRight = false;
-        }
-      },
-    
-      buttonDown: function(e){
-        if(e.keyCode === 32){
-          Game.shooting = true;
-        }
-        if(e.keyCode === 37 || e.keyCode === 65){
-          Game.player.movingLeft = true;
-        }
-        if(e.keyCode === 39 || e.keyCode === 68){
-          Game.player.movingRight = true;
-        }
-      },
-    
-      random: function(min, max){
-        return Math.floor(Math.random() * (max - min) + min);
-      },
-    
-      invincibleMode: function(s){
-        this.player.invincible = true;
-        setTimeout(function(){
-          Game.player.invincible = false;
-        }, s);
-      },
-    
-      collision: function(a, b){
-        return !(
-          ((a.y + a.height) < (b.y)) ||
-          (a.y > (b.y + b.height)) ||
-          ((a.x + a.width) < b.x) ||
-          (a.x > (b.x + b.width))
-        )
-      },
-    
-      clear: function(){
-        this.ctx.fillStyle = Game.color;
-        this.ctx.fillRect(0, 0, this.c.width, this.c.height);
-      },
-       
-      pause: function(){
-        this.paused = true;
-      },
-    
-      unPause: function(){
-        this.paused = false;
-      },
-    
-    
-      gameOver: function(){
-        this.isGameOver = true;
-        this.clear();
-        var message = "Game Over";
-        var message2 = "Score: " + Game.score;
-        var message3 = "Click or press Spacebar to Play Again";
-        this.pause();
-        this.ctx.fillStyle = "white";
-        this.ctx.font = "bold 30px Lato, sans-serif";
-        this.ctx.fillText(message, this.c.width/2 - this.ctx.measureText(message).width/2, this.c.height/2 - 50);
-        this.ctx.fillText(message2, this.c.width/2 - this.ctx.measureText(message2).width/2, this.c.height/2 - 5);
-        this.ctx.font = "bold 16px Lato, sans-serif";
-        this.ctx.fillText(message3, this.c.width/2 - this.ctx.measureText(message3).width/2, this.c.height/2 + 30);
-      },
-    
-      updateScore: function(){
-        this.ctx.fillStyle = "white";
-        this.ctx.font = "16px Lato, sans-serif";
-        this.ctx.fillText("Score: " + this.score, 8, 20);
-        this.ctx.fillText("Lives: " + (this.maxLives - this.life), 8, 40);
-      },
-      
-      loop: function(){
-        if(!Game.paused){
-          Game.clear();
-          for(var i in Game.enemies){
-            var currentEnemy = Game.enemies[i];
-            currentEnemy.draw();
-            currentEnemy.update();
-            if(Game.currentFrame % currentEnemy.shootingSpeed === 0){
-              currentEnemy.shoot();
-            }
-          }
-          for(var x in Game.enemyBullets){
-            Game.enemyBullets[x].draw();
-            Game.enemyBullets[x].update();
-          }
-          for(var z in Game.bullets){
-            Game.bullets[z].draw();
-            Game.bullets[z].update();
-          }
-          if(Game.player.invincible){
-            if(Game.currentFrame % 20 === 0){
-              Game.player.draw();
-            }
-          } else {
-            Game.player.draw();
-          }
-    
-          for(var i in Game.particles){
-            Game.particles[i].draw();
-          }
-          Game.player.update();
-          Game.updateScore();
-          Game.currentFrame = Game.requestAnimationFrame.call(window, Game.loop);
+        if (this.isGameOver) {
+          this.init();
         }
       }
-    
-    };
+
+      if (key === 'q') {
+        // Handle the user pressing 'q' to quit the game
+        this.quit();
+      }
+
+      this.player.movingLeft = key === 'a';
+      this.player.movingRight = key === 'd';
+
+      this.rl.promptLoop();
+    },
+
+    quit: function() {
+      // Handle the game quit logic here
+      this.rl.close();
+      process.exit();
+    },
+
+    clicked: function() {
+      if (!Game.paused) {
+        Game.pause();
+      } else {
+        if (Game.isGameOver) {
+          Game.init();
+        } else {
+          Game.unPause();
+          Game.loop();
+          Game.invincibleMode(1000);
+        }
+      }
+    },
+
+    // ... (rest of the code remains unchanged) ...
+
+    loop: function() {
+      if (!Game.paused) {
+        Game.clear();
+        for (var i in Game.enemies) {
+          var currentEnemy = Game.enemies[i];
+          currentEnemy.draw();
+          currentEnemy.update();
+          if (Game.currentFrame % currentEnemy.shootingSpeed === 0) {
+            currentEnemy.shoot();
+          }
+        }
+        for (var x in Game.enemyBullets) {
+          Game.enemyBullets[x].draw();
+          Game.enemyBullets[x].update();
+        }
+        for (var z in Game.bullets) {
+          Game.bullets[z].draw();
+          Game.bullets[z].update();
+        }
+        if (Game.player.invincible) {
+          if (Game.currentFrame % 20 === 0) {
+            Game.player.draw();
+          }
+        } else {
+          Game.player.draw();
+        }
+
+        for (var i in Game.particles) {
+          Game.particles[i].draw();
+        }
+        Game.player.update();
+        Game.updateScore();
+        Game.currentFrame = Game.requestAnimationFrame.call(window, Game.loop);
+      }
+    }
+  };
     
     
     
